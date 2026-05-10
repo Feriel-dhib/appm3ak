@@ -1,0 +1,7 @@
+{
+  "DEV_LAN_HOST": "192.168.1.100",
+  "API_PORT": "3000",
+  "MA3AK_ENV": "local",
+  "AI_MODULE_BASE_URL": "http://127.0.0.1:5001",
+  "MA3AK_API_KEY": "YOUR_LOCAL_OR_REMOTE_API_KEY"
+}

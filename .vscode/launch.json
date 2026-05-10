@@ -1,0 +1,52 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Ma3ak",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "preLaunchTask": "ma3ak: dart_defines.local",
+      "toolArgs": [
+        "--device-timeout=180",
+        "--dart-define-from-file=dart_defines.local.json"
+      ]
+    },
+    {
+      "name": "Ma3ak (IP à la volée, sans fichier)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--device-timeout=180",
+        "--dart-define=DEV_LAN_HOST=${input:lanIp}",
+        "--dart-define=API_PORT=${input:apiPort}"
+      ]
+    },
+    {
+      "name": "Ma3ak (API Render, debug)",
+      "request": "launch",
+      "type": "dart",
+      "program": "lib/main.dart",
+      "toolArgs": [
+        "--device-timeout=180",
+        "--dart-define=MA3AK_ENV=production",
+        "--dart-define-from-file=dart_defines.example.json"
+      ]
+    }
+  ],
+  "inputs": [
+    {
+      "id": "lanIp",
+      "type": "promptString",
+      "description": "IP du Mac (ifconfig / ipconfig getifaddr en0)",
+      "default": "172.20.10.4"
+    },
+    {
+      "id": "apiPort",
+      "type": "promptString",
+      "description": "Port API backend",
+      "default": "3000"
+    }
+  ]
+}

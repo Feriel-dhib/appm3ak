@@ -1,0 +1,8 @@
+{
+  "API_BASE_URL": "https://backend-m3ak.onrender.com",
+  "MA3AK_ENV": "production",
+  "AI_MODULE_BASE_URL": "https://ai-module-navigation.onrender.com",
+  "MA3AK_API_KEY": "86b7d784fb40db6a6e1f417b56a456537c4305fbde71bc10133cab970478a796",
+  "STRESS_API_URL": "http://127.0.0.1:8000",
+  "ACCESSIBILITY_IA_BASE_URL": "http://192.168.1.42:5050"
+}

@@ -1,0 +1,107 @@
+name: appm3ak
+description: "Ma3ak - Application mobile pour personnes en situation de handicap en Tunisie et leurs accompagnants."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.0-290.4.beta
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_localizations:
+    sdk: flutter
+  cupertino_icons: ^1.0.8
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # HTTP & Storage
+  dio: ^5.7.0
+  socket_io_client: ^2.0.3
+  flutter_secure_storage: ^9.2.4
+  shared_preferences: ^2.3.3
+
+  # Navigation
+  go_router: ^14.6.2
+
+  # Google Sign-In
+  google_sign_in: ^6.2.2
+
+  # Image handling
+  image_picker: ^1.1.2
+  mobile_scanner: ^7.2.0
+  qr_flutter: ^4.1.0
+  share_plus: ^10.1.2
+  pdf: ^3.11.1
+  uuid: ^4.5.1
+  path: ^1.9.1
+
+  # Navigation AR & AI (détection d'obstacles, voix)
+  camera: ^0.11.0+2
+  google_mlkit_commons: ^0.11.0
+  google_mlkit_object_detection: ^0.15.0
+  google_mlkit_text_recognition: ^0.15.1
+  flutter_tts: ^4.2.0
+  # >=0.12.1 : runtime LiteRT / TFLite récent (FULLY_CONNECTED v12, etc.) — 0.10.x trop ancien pour certains .tflite exportés récemment.
+  tflite_flutter: ^0.12.1
+
+  # Utils
+  equatable: ^2.0.7
+  url_launcher: ^6.2.5
+
+  # Carte & itinéraires (OSM via backend)
+  flutter_map: ^6.1.0
+  latlong2: ^0.9.0
+  geolocator: ^13.0.2
+  flutter_compass: ^0.8.1
+  sensors_plus: ^6.1.1
+  record: ^6.1.2
+
+  # Module apprentissage (FastAPI collègue :8000 + ML signes / visage)
+  provider: ^6.1.2
+  vibration: ^3.1.0
+  google_mlkit_face_detection: ^0.13.1
+  google_mlkit_pose_detection: ^0.14.0
+  image: ^4.5.4
+  path_provider: ^2.1.5
+  permission_handler: ^11.4.0
+  speech_to_text: ^7.0.0
+  flutter_phone_direct_caller: ^2.2.1
+  video_player: ^2.9.2
+  json_annotation: ^4.9.0
+  device_info_plus: ^12.4.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  web:
+    generate: true
+  image_path: assets/images/logo.png
+  remove_alpha_ios: true
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: assets/images/logo.png
+
+flutter:
+  uses-material-design: true
+  generate: true
+  assets:
+    - assets/images/
+    - assets/models/
+    - assets/models/air_writing.tflite
+    - assets/models/hand_landmarker.task
+    - assets/videos/
+    - assets/fonts/
+    - assets/places.json
+
+  fonts:
+    - family: NotoSansSymbols2
+      fonts:
+        - asset: assets/fonts/NotoSansSymbols2-Regular.ttf

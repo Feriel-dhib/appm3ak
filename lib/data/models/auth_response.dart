@@ -1,0 +1,16 @@
+import 'user_model.dart';
+
+class AuthResponse {
+  const AuthResponse({
+    required this.accessToken,
+    required this.user,
+  });
+
+  factory AuthResponse.fromJson(Map<String, dynamic> json) => AuthResponse(
+        accessToken: (json['access_token'] ?? json['accessToken']) as String,
+        user: UserModel.fromJson(json['user'] as Map<String, dynamic>),
+      );
+
+  final String accessToken;
+  final UserModel user;
+}

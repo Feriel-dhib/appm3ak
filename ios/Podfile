@@ -1,0 +1,83 @@
+# Minimum iOS version required by google_mlkit_commons
+platform :ios, '15.5'
+
+require 'json'
+
+# CocoaPods analytics sends network stats synchronously affecting flutter build latency.
+ENV['COCOAPODS_DISABLE_STATS'] = 'true'
+
+project 'Runner', {
+  'Debug' => :debug,
+  'Profile' => :release,
+  'Release' => :release,
+}
+
+def flutter_root
+  generated_xcode_build_settings_path = File.expand_path(File.join('..', 'Flutter', 'Generated.xcconfig'), __FILE__)
+  unless File.exist?(generated_xcode_build_settings_path)
+    raise "#{generated_xcode_build_settings_path} must exist. If you're running pod install manually, make sure flutter pub get is executed first"
+  end
+
+  File.foreach(generated_xcode_build_settings_path) do |line|
+    matches = line.match(/FLUTTER_ROOT\=(.*)/)
+    return matches[1].strip if matches
+  end
+  raise "FLUTTER_ROOT not found in #{generated_xcode_build_settings_path}. Try deleting Generated.xcconfig, then run flutter pub get"
+end
+
+require File.expand_path(File.join('packages', 'flutter_tools', 'bin', 'podhelper'), flutter_root)
+
+flutter_ios_podfile_setup
+
+# tflite_flutter (pub) declare TensorFlowLiteSwift 2.12.0 : runtime trop ancien pour certains
+# .tflite (ex. opcode FULLY_CONNECTED v12). On pousse 2.17.0 sur le podspec resolu (pub-cache
+# ou copie via .symlinks selon la version de Flutter) avant l'analyse CocoaPods.
+def patch_tflite_flutter_ios_podspec!
+  root = File.expand_path('..', __FILE__)
+  candidates = []
+  deps = File.join(root, '.flutter-plugins-dependencies')
+  if File.file?(deps)
+    begin
+      ios = JSON.parse(File.read(deps)).dig('plugins', 'ios') || []
+      hit = ios.find { |p| p['name'] == 'tflite_flutter' && p['path'].is_a?(String) }
+      candidates << File.join(hit['path'], 'ios', 'tflite_flutter.podspec') if hit
+    rescue JSON::ParserError
+    end
+  end
+  sym = File.join(root, '.symlinks', 'plugins', 'tflite_flutter', 'ios', 'tflite_flutter.podspec')
+  candidates << sym if File.file?(sym)
+  candidates.uniq.each do |path|
+    next unless File.file?(path)
+
+    contents = File.read(path)
+    patched = contents.gsub("tflite_version = '2.12.0'", "tflite_version = '2.17.0'")
+    File.write(path, patched) if patched != contents
+  end
+end
+
+pre_install do |_installer|
+  patch_tflite_flutter_ios_podspec!
+end
+
+target 'Runner' do
+  use_frameworks!
+
+  flutter_install_all_ios_pods File.dirname(File.realpath(__FILE__))
+  target 'RunnerTests' do
+    inherit! :search_paths
+  end
+end
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    flutter_additional_ios_build_settings(target)
+    target.build_configurations.each do |config|
+      config.build_settings['GCC_PREPROCESSOR_DEFINITIONS'] ||= [
+        '$(inherited)',
+        'PERMISSION_CAMERA=1',
+        'PERMISSION_MICROPHONE=1',
+        'PERMISSION_SPEECH_RECOGNIZER=1',
+      ]
+    end
+  end
+end

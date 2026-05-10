@@ -1,0 +1,14 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "ma3ak: dart_defines.local",
+      "type": "shell",
+      "command": "${workspaceFolder}/tool/ensure_dart_defines_local.sh",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": []
+    }
+  ]
+}
