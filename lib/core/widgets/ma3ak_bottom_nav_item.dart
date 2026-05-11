@@ -36,7 +36,7 @@ class Ma3akBottomNavItem extends StatelessWidget {
           excludeFromSemantics: true,
           child: ExcludeSemantics(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -53,6 +53,9 @@ class Ma3akBottomNavItem extends StatelessWidget {
                       color: selected ? primary : variant,
                       fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
                   ),
                 ],
               ),

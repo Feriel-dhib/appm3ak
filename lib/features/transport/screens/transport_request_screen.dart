@@ -166,7 +166,7 @@ class _TransportRequestScreenState extends ConsumerState<TransportRequestScreen>
             backgroundColor: Colors.green,
           ),
         );
-        context.go('/transport/chauffeur/${transport.id}');
+        context.go('/transport/${transport.id}/suivi');
       }
     } catch (e) {
       if (mounted) {

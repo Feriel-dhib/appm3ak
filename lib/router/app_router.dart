@@ -40,7 +40,7 @@ import '../features/auth/screens/register_screen.dart';
 import '../features/accessibility/screens/conversation_captions_screen.dart';
 import '../features/accessibility/screens/reservation_screen.dart';
 import '../features/accessibility/screens/reservations_history_screen.dart';
-import '../features/accessible_places/screens/accessible_places_screen.dart';
+import '../features/accessibility/screens/accessibility_lieux_hub_screen.dart';
 import '../air_writing/air_writing_page.dart';
 import '../features/auth/screens/splash_screen.dart';
 import '../features/auth/screens/welcome_screen.dart';
@@ -671,7 +671,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/accessible-places',
-        builder: (_, __) => const AccessiblePlacesScreen(),
+        builder: (_, __) => const AccessibilityLieuxHubScreen(),
       ),
       GoRoute(
         path: '/reservations-history',

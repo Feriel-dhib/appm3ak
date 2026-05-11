@@ -280,9 +280,9 @@ class _MainShellState extends ConsumerState<MainShell> {
                   onTap: () => setState(() => _currentIndex = 2),
                 ),
                 Ma3akBottomNavItem(
-                  icon: Icons.location_city_outlined,
-                  activeIcon: Icons.location_city,
-                  label: strings.places,
+                  icon: Icons.place_outlined,
+                  activeIcon: Icons.place,
+                  label: strings.navLieux,
                   selected: _currentIndex == 3,
                   primary: primary,
                   onTap: () => setState(() => _currentIndex = 3),
@@ -320,8 +320,9 @@ class _MainShellState extends ConsumerState<MainShell> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(vertical: 8),
                   child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: navItems,
+                    children: navItems
+                        .map((item) => Expanded(child: item))
+                        .toList(),
                   ),
                 ),
               ),

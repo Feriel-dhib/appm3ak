@@ -278,7 +278,7 @@ class AppStrings {
   // ─── Accueil ───────────────────────────────────────────────────────────────
   String get transport => _t(ar: 'النقل', en: 'Transport', fr: 'Transport');
   String get places => _t(ar: 'أماكن', en: 'Places', fr: 'Milieux');
-  String get navLieux => isAr ? 'الأماكن' : 'Lieux accessibles';
+  String get navLieux => isAr ? 'الأماكن' : 'Lieux';
   String get nearbyPlacesNav => isAr ? 'أماكن قريبة' : 'Lieux proches';
   /// Grille d’accueil : uniquement lieux / milieux accessibles.
   String get homePlacesServicesSection => _t(
