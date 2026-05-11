@@ -225,13 +225,13 @@ class TransportRepository {
   }) async {
     final data = <String, dynamic>{};
     if (scoreMatching != null) data['scoreMatching'] = scoreMatching;
-    if (vehicleId != null) data['vehicleId'] = vehicleId;
+    if (vehicleId != null && vehicleId.isNotEmpty) data['vehicleId'] = vehicleId;
     if (matchingSubscores != null && matchingSubscores.isNotEmpty) {
       data['matchingSubscores'] = matchingSubscores;
     }
     await _api.dio.post(
       Endpoints.transportAccept(id),
-      data: data.isNotEmpty ? data : null,
+      data: data,
     );
   }
 

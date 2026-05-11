@@ -1,9 +1,19 @@
 import 'package:flutter/material.dart';
 
+import 'app_semantic_colors.dart';
+
 /// Thème Ma3ak — palette rose/violet douce (cute), accessible WCAG 4.5:1.
 ///
 /// Light  : #E9C8CE #DEABAF #DC98BD #B384A7 #81657C
 /// Dark   : #211A44 #5C5792 #9F8DC3 #BE9CC7 #E3BAD5
+///
+/// **Extensions** exposées via `Theme.of(context).extension<T>()` :
+///  - [AppSemanticColors] (`context.semanticColors`) : danger / success / warning / info
+///
+/// **Tokens compagnons** (à utiliser à la place des magic numbers dans les écrans) :
+///  - `lib/core/theme/app_spacing.dart` (paddings, gaps)
+///  - `lib/core/theme/app_radius.dart` (rayons, tailles tactiles min)
+///  - `lib/core/theme/app_durations.dart` (animations)
 class AppTheme {
   AppTheme._();
 
@@ -129,6 +139,24 @@ class AppTheme {
           ),
         ),
 
+        // FilledButton (Material 3) — aligné sur ElevatedButton pour cohérence visuelle.
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: _lPrimary,
+            foregroundColor: _lOnPrimary,
+            minimumSize: const Size(88, 52),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+            textStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(_radiusButton),
+            ),
+          ),
+        ),
+
         // TextButton
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
@@ -137,6 +165,13 @@ class AppTheme {
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
+          ),
+        ),
+
+        // IconButton — taille tactile min 48×48 (WCAG / M3).
+        iconButtonTheme: IconButtonThemeData(
+          style: IconButton.styleFrom(
+            minimumSize: const Size(48, 48),
           ),
         ),
 
@@ -291,6 +326,11 @@ class AppTheme {
           labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
           labelSmall: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: _lOnSurfaceVariant),
         ),
+
+        // Extensions : couleurs sémantiques (danger / success / warning / info).
+        extensions: const <ThemeExtension<dynamic>>[
+          AppSemanticColors.light,
+        ],
       );
 
   // ═══════════════════════════════════════════════════════════════════════════
@@ -383,6 +423,24 @@ class AppTheme {
           ),
         ),
 
+        // FilledButton (Material 3).
+        filledButtonTheme: FilledButtonThemeData(
+          style: FilledButton.styleFrom(
+            backgroundColor: _dPrimary,
+            foregroundColor: _dOnPrimary,
+            minimumSize: const Size(88, 52),
+            padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 14),
+            textStyle: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.3,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(_radiusButton),
+            ),
+          ),
+        ),
+
         // TextButton
         textButtonTheme: TextButtonThemeData(
           style: TextButton.styleFrom(
@@ -391,6 +449,13 @@ class AppTheme {
               fontSize: 14,
               fontWeight: FontWeight.w600,
             ),
+          ),
+        ),
+
+        // IconButton — taille tactile min 48×48.
+        iconButtonTheme: IconButtonThemeData(
+          style: IconButton.styleFrom(
+            minimumSize: const Size(48, 48),
           ),
         ),
 
@@ -545,5 +610,10 @@ class AppTheme {
           labelMedium: TextStyle(fontSize: 12, fontWeight: FontWeight.w500),
           labelSmall: TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: _dOnSurfaceVariant),
         ),
+
+        // Extensions : couleurs sémantiques (danger / success / warning / info).
+        extensions: const <ThemeExtension<dynamic>>[
+          AppSemanticColors.dark,
+        ],
       );
 }

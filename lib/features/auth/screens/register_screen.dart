@@ -116,7 +116,21 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             : _specialisationController.text.trim(),
         langue: _preferredLanguage?.name ?? 'fr',
       );
-      if (mounted) context.go('/login');
+      // Auto-login après inscription : évite à l'utilisateur de ressaisir
+      // ses identifiants. La redirection vers l'onboarding/home est ensuite
+      // gérée par le listener auth dans `LoginScreen` ou par `SplashScreen`
+      // — ici on déclenche juste la connexion et on bascule vers le splash
+      // (route '/') qui se chargera du routing final.
+      try {
+        await ref
+            .read(authStateProvider.notifier)
+            .login(email: email, password: _passwordController.text);
+        if (mounted) context.go('/');
+      } catch (_) {
+        // Si l'auto-login échoue (réseau, backend), on retombe sur l'écran
+        // de connexion classique.
+        if (mounted) context.go('/login');
+      }
     } catch (e) {
       setState(() {
         _isLoading = false;

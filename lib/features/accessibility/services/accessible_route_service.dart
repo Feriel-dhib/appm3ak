@@ -8,6 +8,7 @@ import 'package:http/http.dart' as http;
 import 'package:latlong2/latlong.dart';
 
 import '../../../core/config/app_config.dart';
+import '../../../data/api/endpoints.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 //  AccessibleRouteResult
@@ -85,6 +86,7 @@ class AccessibleRouteService {
       candidates.add(fromEnv.replaceAll(RegExp(r'/+$'), ''));
     }
     candidates.add(AppConfig.aiBaseUrl);
+    candidates.add(AppConfig.apiBaseUrl);
     candidates.addAll(await _urlsFromAssetFile());
     candidates.addAll(_extraLocalPythonBases());
 
@@ -139,21 +141,23 @@ class AccessibleRouteService {
   }
 
   static Future<bool> _healthOk(String base) async {
-    try {
-      final uri = Uri.parse('$base/health');
-      final r = await http.get(uri).timeout(const Duration(seconds: 8));
-      if (r.statusCode != 200) return false;
-      final data = jsonDecode(r.body);
-      if (data is Map<String, dynamic>) {
-        if (data['ok'] == true) return true;
-        final st = data['status']?.toString().toLowerCase();
-        return st == 'ok';
+    final paths = ['/health', '${Endpoints.accessibilityHealth}'];
+    for (final path in paths) {
+      try {
+        final uri = Uri.parse('$base$path');
+        final r = await http.get(uri).timeout(const Duration(seconds: 8));
+        if (r.statusCode != 200) continue;
+        final data = jsonDecode(r.body);
+        if (data is Map<String, dynamic>) {
+          if (data['ok'] == true) return true;
+          final st = data['status']?.toString().toLowerCase();
+          if (st == 'ok') return true;
+        }
+      } catch (e) {
+        debugPrint('[AI ROUTE] $path échec $base — $e');
       }
-      return false;
-    } catch (e) {
-      debugPrint('[AI ROUTE] /health échec $base — $e');
-      return false;
     }
+    return false;
   }
 
   static String get _baseUrl {
@@ -298,10 +302,25 @@ class AccessibleRouteService {
           debugPrint('[AI ROUTE] Python A* timeout après preload — fallback OSRM');
         }
       }
-      debugPrint('[AI ROUTE] API Python inaccessible — fallback OSRM/Valhalla (HTTPS)');
+      debugPrint('[AI ROUTE] API Python inaccessible — tentative proxy NestJS');
     }
 
-    // ── Tentative 2 : OSRM public puis Valhalla (ne dépend pas de Python)
+    // ── Tentative 2 : Proxy NestJS sur Render (mêmes endpoints, préfixés /accessibility/)
+    try {
+      final nestResult = await _fetchFromNestProxy(start: start, end: end)
+          .timeout(_pythonRouteOverallTimeout);
+      if (nestResult.isSuccess) {
+        debugPrint('[AI ROUTE] ✅ NestJS proxy OK — ${nestResult.coordinates.length} pts');
+        return nestResult;
+      }
+      debugPrint('[AI ROUTE] NestJS proxy KO: ${nestResult.errorMessage}');
+    } on TimeoutException catch (_) {
+      debugPrint('[AI ROUTE] NestJS proxy timeout — fallback OSRM');
+    } catch (e) {
+      debugPrint('[AI ROUTE] NestJS proxy erreur: $e');
+    }
+
+    // ── Tentative 3 : OSRM public puis Valhalla (ne dépend pas de Python)
     return _fetchFromOsrm(start: start, end: end);
   }
 
@@ -367,6 +386,94 @@ class AccessibleRouteService {
       );
     } catch (e) {
       return AccessibleRouteResult.failure('Erreur réseau Python : $e');
+    }
+  }
+
+  // ── Fallback NestJS proxy (backend-m3ak.onrender.com) ────────────────────
+  Future<AccessibleRouteResult> _fetchFromNestProxy({
+    required LatLng start,
+    required LatLng end,
+  }) async {
+    final nestBase = AppConfig.apiBaseUrl;
+
+    // nearest_node départ
+    int? startNode;
+    try {
+      final r = await http.post(
+        Uri.parse('$nestBase${Endpoints.accessibilityNearestNode}'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'lat': start.latitude, 'lon': start.longitude}),
+      ).timeout(_timeout);
+      if (r.statusCode == 200) {
+        final d = jsonDecode(r.body);
+        final id = d is Map ? (d['node_id'] ?? d['data']?['node_id']) : null;
+        startNode = id is int ? id : (id is num ? id.toInt() : (id is String ? int.tryParse(id) : null));
+      }
+    } catch (e) {
+      debugPrint('[AI ROUTE] NestJS nearest_node start: $e');
+    }
+    if (startNode == null) {
+      return AccessibleRouteResult.failure('NestJS: nœud départ introuvable');
+    }
+
+    // nearest_node arrivée
+    int? endNode;
+    try {
+      final r = await http.post(
+        Uri.parse('$nestBase${Endpoints.accessibilityNearestNode}'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'lat': end.latitude, 'lon': end.longitude}),
+      ).timeout(_timeout);
+      if (r.statusCode == 200) {
+        final d = jsonDecode(r.body);
+        final id = d is Map ? (d['node_id'] ?? d['data']?['node_id']) : null;
+        endNode = id is int ? id : (id is num ? id.toInt() : (id is String ? int.tryParse(id) : null));
+      }
+    } catch (e) {
+      debugPrint('[AI ROUTE] NestJS nearest_node end: $e');
+    }
+    if (endNode == null) {
+      return AccessibleRouteResult.failure('NestJS: nœud destination introuvable');
+    }
+
+    // accessible_route_full
+    try {
+      final r = await http.post(
+        Uri.parse('$nestBase${Endpoints.accessibilityRouteFull}'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'start_node': startNode, 'end_node': endNode}),
+      ).timeout(_timeout);
+
+      if (r.statusCode != 200) {
+        return AccessibleRouteResult.failure('NestJS proxy: HTTP ${r.statusCode}');
+      }
+
+      final data = jsonDecode(r.body) as Map<String, dynamic>;
+      final inner = data['data'] is Map<String, dynamic> ? data['data'] as Map<String, dynamic> : data;
+      if (inner.containsKey('error')) {
+        return AccessibleRouteResult.failure(inner['error'] as String);
+      }
+
+      final coords = _parseCoordinates(inner);
+      if (coords.length < 2) {
+        return AccessibleRouteResult.failure('NestJS proxy: coordonnées invalides');
+      }
+
+      double distMeters = 0;
+      for (int i = 0; i < coords.length - 1; i++) {
+        distMeters += const Distance().as(LengthUnit.Meter, coords[i], coords[i + 1]);
+      }
+      final durSeconds = distMeters / 1000.0 / 4.5 * 3600.0;
+
+      return AccessibleRouteResult.ok(
+        coordinates: coords,
+        bestPath: _parseBestPath(inner),
+        accessibilityScore: _parseAccessibilityScore(inner),
+        distanceMeters: distMeters,
+        durationSeconds: durSeconds,
+      );
+    } catch (e) {
+      return AccessibleRouteResult.failure('NestJS proxy erreur: $e');
     }
   }
 

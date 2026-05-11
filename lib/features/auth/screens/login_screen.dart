@@ -6,6 +6,7 @@ import '../../../core/l10n/app_strings.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../core/widgets/ma3ak_day_night_toggle.dart';
 import '../../../providers/auth_providers.dart';
+import '../../../providers/navigation_mode_provider.dart';
 import '../../../providers/theme_provider.dart';
 import '../widgets/auth_onboarding_layout.dart';
 
@@ -91,10 +92,18 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
   Widget build(BuildContext context) {
     ref.listen<AsyncValue<dynamic>>(authStateProvider, (prev, next) {
       next.whenOrNull(
-        data: (user) {
+        data: (user) async {
           if (!mounted) return;
           setState(() => _isLoading = false);
-          if (user != null) context.go('/home');
+          if (user == null) return;
+          // Si l'utilisateur n'a pas encore choisi son mode d'accessibilité,
+          // on le redirige vers l'onboarding ; sinon, accueil direct.
+          final onboardingDone =
+              await AccessibilityModeNotifier.hasCompletedOnboarding();
+          if (!mounted) return;
+          context.go(
+            onboardingDone ? '/home' : '/onboarding/accessibility-mode',
+          );
         },
         error: (err, stack) {
           if (!mounted) return;

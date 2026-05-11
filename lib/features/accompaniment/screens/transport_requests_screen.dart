@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -88,7 +89,7 @@ class _TransportRequestsScreenState extends ConsumerState<TransportRequestsScree
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text(e.toString().replaceFirst('Exception: ', '')),
+              content: Text(_extractErrorMessage(e)),
               backgroundColor: Colors.red,
             ),
           );
@@ -137,12 +138,26 @@ class _TransportRequestsScreenState extends ConsumerState<TransportRequestsScree
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.toString().replaceFirst('Exception: ', '')),
+            content: Text(_extractErrorMessage(e)),
             backgroundColor: Colors.red,
           ),
         );
       }
     }
+  }
+
+  String _extractErrorMessage(Object e) {
+    if (e is DioException) {
+      final data = e.response?.data;
+      if (data is Map<String, dynamic>) {
+        return (data['message'] ?? data['error'] ?? 'Erreur serveur').toString();
+      }
+      if (e.response?.statusCode == 400) {
+        return 'Requête invalide. Cette demande a peut-être déjà été acceptée.';
+      }
+      return 'Erreur réseau (${e.response?.statusCode ?? 'timeout'})';
+    }
+    return e.toString().replaceFirst('Exception: ', '');
   }
 
   @override

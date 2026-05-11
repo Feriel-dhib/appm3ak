@@ -6,7 +6,13 @@ import '../features/accompaniment/screens/emergency_contacts_screen.dart';
 import '../features/accompaniment/screens/my_accompagnants_relations_screen.dart';
 import '../features/accompaniment/screens/my_handicapes_relations_screen.dart';
 import '../features/accompaniment/screens/transport_requests_screen.dart';
+import '../features/adaptive/screens/blind_voice_mode_screen.dart';
+import '../features/adaptive/screens/deaf_text_mode_screen.dart';
+import '../features/adaptive/screens/motor_gesture_mode_screen.dart';
 import '../features/auth/screens/login_screen.dart';
+import '../features/eye_navigation/screens/eye_navigation_demo_screen.dart';
+import '../features/onboarding/screens/accessibility_mode_selection_screen.dart';
+import '../providers/ai_module_providers.dart';
 import '../features/accessibility/accessibility_post_handoff.dart';
 import '../features/accessibility/head_gesture_post_screen.dart';
 import '../features/accessibility/vibration_coded_post_screen.dart';
@@ -79,16 +85,18 @@ import '../features/medical/screens/medical_emergency_card_screen.dart';
 import '../features/medical/screens/medical_qr_scan_screen.dart';
 import '../features/medical/screens/medical_record_screen.dart';
 import '../features/medical/screens/medical_shared_open_screen.dart';
+import '../core/accessibility/navigation_mode.dart';
 import '../data/models/user_model.dart';
 import '../providers/auth_providers.dart';
 
+/// Vrai si l'utilisateur est un bénéficiaire dont le profil backend
+/// correspond au mode visuel. Délégué à [AccessibilityMode] pour garantir
+/// une **seule** règle de matching dans tout le code (auparavant : 3
+/// helpers `contains(...)` divergents dispersés dans HomeTab + router).
 bool _isBlindBeneficiary(UserModel? user) {
   if (user == null || !user.isBeneficiary) return false;
-  final raw = user.typeHandicap?.toLowerCase().trim() ?? '';
-  return raw.contains('visuel') ||
-      raw.contains('malvoy') ||
-      raw.contains('blind') ||
-      raw.contains('aveugle');
+  return AccessibilityMode.fromBackendTypeHandicap(user.typeHandicap) ==
+      AccessibilityMode.visual;
 }
 
 /// Paramètres optionnels sur `/create-post?…` (lieu pré-lié, retour Communauté).
@@ -159,6 +167,42 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/welcome', builder: (_, __) => const WelcomeScreen()),
       GoRoute(path: '/login', builder: (_, __) => const LoginScreen()),
       GoRoute(path: '/register', builder: (_, __) => const RegisterScreen()),
+      // Onboarding du mode d'accessibilité. `isEditing` = false pour le flux
+      // initial (après auth), true quand l'écran est ouvert depuis le profil.
+      GoRoute(
+        path: '/onboarding/accessibility-mode',
+        builder: (_, state) {
+          final isEditing = state.uri.queryParameters['edit'] == '1';
+          return AccessibilityModeSelectionScreen(isEditing: isEditing);
+        },
+      ),
+      // Modes d'accessibilité — routes GoRouter dédiées (au lieu de
+      // `Navigator.push` ad hoc), pour une pile de navigation cohérente et
+      // des deep links possibles depuis n'importe où.
+      GoRoute(
+        path: '/adaptive/voice',
+        builder: (_, __) => Consumer(
+          builder: (context, ref, _) => BlindVoiceModeScreen(
+            repository: ref.read(aiModuleRepositoryProvider),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/adaptive/motor',
+        builder: (_, __) => Consumer(
+          builder: (context, ref, _) => MotorGestureModeScreen(
+            repository: ref.read(aiModuleRepositoryProvider),
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/adaptive/hearing',
+        builder: (_, __) => const DeafTextModeScreen(),
+      ),
+      GoRoute(
+        path: '/adaptive/eye',
+        builder: (_, __) => const EyeNavigationDemoScreen(),
+      ),
       GoRoute(path: '/sante', redirect: (_, __) => '/home?tab=1'),
       GoRoute(
         path: '/home',

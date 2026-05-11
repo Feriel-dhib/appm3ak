@@ -70,18 +70,21 @@ class _HomeCompanionTabState extends ConsumerState<HomeCompanionTab> {
                 // Header : profil, ACCOMPAGNANT, Bonjour Ahmed, cloche
                 Row(
                   children: [
-                    Semantics(
-                      label: strings.appTitle,
-                      image: true,
-                      child: Container(
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: accent, width: 2),
-                        ),
-                        child: AppLogo(
-                          size: 48,
-                          borderRadius: 24,
-                          backgroundColor: accent,
+                    GestureDetector(
+                      onTap: () => context.push('/profile-edit'),
+                      child: Semantics(
+                        label: strings.profile,
+                        button: true,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: accent, width: 2),
+                          ),
+                          child: AppLogo(
+                            size: 48,
+                            borderRadius: 24,
+                            backgroundColor: accent,
+                          ),
                         ),
                       ),
                     ),
@@ -114,13 +117,18 @@ class _HomeCompanionTabState extends ConsumerState<HomeCompanionTab> {
                         ],
                       ),
                     ),
+                    IconButton(
+                      icon: Icon(Icons.person_outline, color: accent),
+                      tooltip: strings.profile,
+                      onPressed: () => context.push('/profile'),
+                    ),
                     Stack(
                       clipBehavior: Clip.none,
                       children: [
                         IconButton(
                           icon: Icon(Icons.notifications_none, color: accent),
                           tooltip: strings.notifications,
-                          onPressed: () {},
+                          onPressed: () => context.push('/notifications'),
                         ),
                         Positioned(
                           right: 8,

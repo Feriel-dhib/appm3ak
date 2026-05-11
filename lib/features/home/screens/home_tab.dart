@@ -5,15 +5,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../core/accessibility/navigation_mode.dart';
 import '../../../core/l10n/app_strings.dart';
 import '../../../core/widgets/app_logo.dart';
 import '../../../data/models/type_handicap.dart';
 import '../../../providers/auth_providers.dart';
-import '../../../providers/ai_module_providers.dart';
-import '../../adaptive/screens/blind_voice_mode_screen.dart';
-import '../../adaptive/screens/deaf_text_mode_screen.dart';
-import '../../adaptive/screens/motor_gesture_mode_screen.dart';
-import '../../eye_navigation/screens/eye_navigation_demo_screen.dart';
+import '../../../providers/navigation_mode_provider.dart';
 
 /// Contenu de l'onglet Accueil selon la maquette (bonjour, recherche, services, proximité, carte).
 class HomeTab extends ConsumerStatefulWidget {
@@ -27,24 +24,24 @@ class _HomeTabState extends ConsumerState<HomeTab> {
   final FlutterTts _tts = FlutterTts();
   bool _autoVoiceLaunched = false;
 
+  /// Helpers délégués à [AccessibilityMode.fromBackendTypeHandicap] pour avoir
+  /// une **seule** règle de matching dans tout le code (les anciennes
+  /// implémentations faisaient des `contains` sur la string en doublonnant la
+  /// logique avec le router et `TypeHandicap.fromApiString`).
   bool _isMotorOrDeafProfile(String? typeHandicap) {
-    final raw = typeHandicap?.toLowerCase().trim() ?? '';
-    return raw.contains('moteur') ||
-        raw.contains('motor') ||
-        raw.contains('auditif') ||
-        raw.contains('deaf') ||
-        raw.contains('sourd');
+    final mode = AccessibilityMode.fromBackendTypeHandicap(typeHandicap);
+    return mode == AccessibilityMode.motor || mode == AccessibilityMode.hearing;
   }
 
   bool _isBlindProfile(String? typeHandicap) {
-    final raw = typeHandicap?.toLowerCase().trim() ?? '';
-    return raw.contains('visuel') ||
-        raw.contains('blind') ||
-        raw.contains('aveugle');
+    return AccessibilityMode.fromBackendTypeHandicap(typeHandicap) ==
+        AccessibilityMode.visual;
   }
 
   void _openAdaptiveQuickMenu(BuildContext context, WidgetRef ref) {
-    final repo = ref.read(aiModuleRepositoryProvider);
+    // Les modes adaptés sont maintenant routés via GoRouter
+    // (`/adaptive/voice|hearing|motor|eye`) → plus besoin de récupérer
+    // explicitement le repository AI ici, le router le résout dans son builder.
     showModalBottomSheet<void>(
       context: context,
       showDragHandle: true,
@@ -60,13 +57,7 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                 subtitle: const Text('Assistant vocal pour navigation'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => BlindVoiceModeScreen(
-                        repository: repo,
-                      ),
-                    ),
-                  );
+                  context.push('/adaptive/voice');
                 },
               ),
               ListTile(
@@ -75,11 +66,7 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                 subtitle: const Text('Interface visuelle simplifiée'),
                 onTap: () {
                   Navigator.of(context).pop();
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const DeafTextModeScreen(),
-                    ),
-                  );
+                  context.push('/adaptive/hearing');
                 },
               ),
               ListTile(
@@ -90,13 +77,7 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                 ),
                 onTap: () {
                   Navigator.of(context).pop();
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => MotorGestureModeScreen(
-                        repository: repo,
-                      ),
-                    ),
-                  );
+                  context.push('/adaptive/motor');
                 },
               ),
               ListTile(
@@ -107,11 +88,7 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                 ),
                 onTap: () {
                   Navigator.of(context).pop();
-                  Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => const EyeNavigationDemoScreen(),
-                    ),
-                  );
+                  context.push('/adaptive/eye');
                 },
               ),
             ],
@@ -138,12 +115,7 @@ class _HomeTabState extends ConsumerState<HomeTab> {
         await _tts.stop();
       } catch (_) {}
       if (!mounted) return;
-      final repo = ref.read(aiModuleRepositoryProvider);
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => BlindVoiceModeScreen(repository: repo),
-        ),
-      );
+      context.push('/adaptive/voice');
     }));
   }
 
@@ -160,8 +132,25 @@ class _HomeTabState extends ConsumerState<HomeTab> {
         AppStrings.fromPreferredLanguage(user.preferredLanguage?.name);
     final theme = Theme.of(context);
     final primary = theme.colorScheme.primary;
+    // Mode d'accessibilité actif (source de vérité unique pour l'UI).
+    // Combine la valeur choisie par l'utilisateur (provider) avec celle dérivée
+    // de son profil backend si l'onboarding n'a pas encore été fait.
+    final activeMode = ref.watch(accessibilityModeProvider);
+    final isVisualMode = activeMode == AccessibilityMode.visual;
+    final isMotorMode = activeMode == AccessibilityMode.motor;
+    // Cartes "Air writing" : pertinent uniquement pour le mode moteur
+    // (geste à distance comme entrée). Compatible avec l'ancien fallback
+    // `typeHandicap == moteur` pour les comptes existants.
     final showAirWritingHome = user.isBeneficiary &&
-        TypeHandicap.fromApiString(user.typeHandicap) == TypeHandicap.moteur;
+        (isMotorMode ||
+            TypeHandicap.fromApiString(user.typeHandicap) ==
+                TypeHandicap.moteur);
+    // Cartes liées à la détection / navigation pour personnes aveugles :
+    // ces routes sont protégées par le router (`_isBlindBeneficiary`). On les
+    // masque donc si le mode actif n'est pas visuel pour éviter d'afficher
+    // des cartes qui mènent à un message "Accès restreint".
+    final showBlindNavigationCards =
+        user.isBeneficiary && isVisualMode;
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _maybeLaunchBlindAssist();
@@ -352,24 +341,25 @@ class _HomeTabState extends ConsumerState<HomeTab> {
                     primary: primary,
                     onTap: () => context.push('/submit-location'),
                   ),
-                  _ServiceCard(
-                    icon: Icons.navigation_outlined,
-                    label: strings.accessibilityCard,
-                    primary: primary,
-                    onTap: () => context.push('/transport/obstacle-navigation-hub'),
-                  ),
-                  _ServiceCard(
-                    icon: Icons.remove_red_eye_outlined,
-                    label: strings.obstacleDetection,
-                    primary: primary,
-                    onTap: () => context.push('/transport/obstacle-detection'),
-                  ),
-                  _ServiceCard(
-                    icon: Icons.explore_outlined,
-                    label: strings.guidedObstacleNavShort,
-                    primary: primary,
-                    onTap: () => context.push('/transport/obstacle-navigation-hub'),
-                  ),
+                  // Cartes navigation / détection d'obstacles : routes protégées
+                  // par `_isBlindBeneficiary` côté router → on n'affiche que pour
+                  // le mode visuel pour éviter "Accès restreint".
+                  if (showBlindNavigationCards) ...[
+                    _ServiceCard(
+                      icon: Icons.remove_red_eye_outlined,
+                      label: strings.obstacleDetection,
+                      primary: primary,
+                      onTap: () =>
+                          context.push('/transport/obstacle-detection'),
+                    ),
+                    _ServiceCard(
+                      icon: Icons.explore_outlined,
+                      label: strings.guidedObstacleNavShort,
+                      primary: primary,
+                      onTap: () => context
+                          .push('/transport/obstacle-navigation-hub'),
+                    ),
+                  ],
                   if (showAirWritingHome)
                     _ServiceCard(
                       icon: Icons.draw_outlined,

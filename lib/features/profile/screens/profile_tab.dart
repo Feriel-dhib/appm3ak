@@ -5,11 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../../../core/accessibility/navigation_mode.dart';
 import '../../../core/l10n/app_strings.dart';
+import '../../../core/theme/app_semantic_colors.dart';
 import '../../../core/utils/profile_photo_rules.dart';
 import '../../../data/repositories/user_repository.dart';
 import '../../../providers/auth_providers.dart';
 import '../../../core/widgets/ma3ak_day_night_toggle.dart';
+import '../../../providers/navigation_mode_provider.dart';
 import '../../../providers/theme_provider.dart';
 
 /// Onglet Mon Profil : design maquette (photo, infos, cartes, sécurité, déconnexion).
@@ -368,6 +371,18 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                     onTap: () => _showThemeDialog(context, ref, strings),
                   ),
                   const SizedBox(height: 8),
+                  // Mode d'accessibilité — modifiable à tout moment (le choix
+                  // initial est fait à l'onboarding juste après la connexion).
+                  _InfoTile(
+                    icon: ref.watch(accessibilityModeProvider).icon,
+                    iconBg: primary.withValues(alpha: 0.12),
+                    label: 'Mode d\'accessibilité',
+                    value:
+                        ref.watch(accessibilityModeProvider).label(context),
+                    onTap: () => context
+                        .push('/onboarding/accessibility-mode?edit=1'),
+                  ),
+                  const SizedBox(height: 8),
                   if (!user.isChauffeurSolidaire) ...[
                     _InfoTile(
                       icon: Icons.closed_caption_outlined,
@@ -379,7 +394,8 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                     const SizedBox(height: 8),
                     _InfoTile(
                       icon: Icons.emergency_outlined,
-                      iconBg: Colors.red.withValues(alpha: 0.12),
+                      iconBg: context.semanticColors.danger
+                          .withValues(alpha: 0.12),
                       label: strings.emergencyContacts,
                       onTap: () => context.push('/accompagnants'),
                     ),
@@ -459,8 +475,11 @@ class _ProfileTabState extends ConsumerState<ProfileTab> {
                         ),
                       ),
                       style: OutlinedButton.styleFrom(
-                        foregroundColor: Colors.red.shade700,
-                        side: BorderSide(color: Colors.red.shade300),
+                        foregroundColor: context.semanticColors.danger,
+                        side: BorderSide(
+                          color: context.semanticColors.danger
+                              .withValues(alpha: 0.5),
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),

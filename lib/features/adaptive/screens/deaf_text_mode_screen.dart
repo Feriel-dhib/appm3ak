@@ -1,13 +1,31 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../core/theme/app_radius.dart';
+import '../../../core/theme/app_semantic_colors.dart';
+import '../../../core/theme/app_spacing.dart';
+import '../../../core/widgets/accessible_action_card.dart';
+import '../../../core/widgets/accessible_section_header.dart';
+import '../../../core/widgets/ma3ak_primary_button.dart';
 import '../../../providers/ai_inference_providers.dart';
 
+/// Mode texte pour utilisateurs sourds ou malentendants.
+///
+/// Pendant longtemps cet écran ne contenait que la conversion texte → signes
+/// et deux cartes placeholders ("Notifications" → SnackBar, "Confirmation" →
+/// dialog statique) qui ne menaient nulle part. Cette refonte :
+///  - garde la fonctionnalité IA texte → signes (utile),
+///  - ajoute une **vraie** navigation par rubriques (équivalent textuel du
+///    mode vocal de [BlindVoiceModeScreen]) : sous-titres conversation,
+///    notifications, communauté, transport, contacts d'urgence,
+///  - utilise [AccessibleActionCard] pour la cohérence visuelle et sémantique.
 class DeafTextModeScreen extends ConsumerStatefulWidget {
   const DeafTextModeScreen({super.key});
 
   @override
-  ConsumerState<DeafTextModeScreen> createState() => _DeafTextModeScreenState();
+  ConsumerState<DeafTextModeScreen> createState() =>
+      _DeafTextModeScreenState();
 }
 
 class _DeafTextModeScreenState extends ConsumerState<DeafTextModeScreen> {
@@ -19,174 +37,193 @@ class _DeafTextModeScreenState extends ConsumerState<DeafTextModeScreen> {
     super.dispose();
   }
 
+  Future<void> _runSignText() async {
+    await ref
+        .read(signTextControllerProvider.notifier)
+        .run(_textController.text);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final semantic = context.semanticColors;
     final signTextState = ref.watch(signTextControllerProvider);
     final generated = signTextState.valueOrNull;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Mode texte')),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                'Interface visuelle active.\nAucun retour audio n’est utilisé.',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                  height: 1.4,
+      appBar: AppBar(
+        title: const Text('Mode texte'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => context.pop(),
+          tooltip: 'Retour',
+        ),
+      ),
+      body: SafeArea(
+        child: ListView(
+          padding: AppSpacing.screenPadding,
+          children: [
+            // Bandeau d'introduction (sémantique header pour les lecteurs d'écran).
+            Semantics(
+              header: true,
+              child: Container(
+                padding: const EdgeInsets.all(AppSpacing.md),
+                decoration: BoxDecoration(
+                  color: cs.primaryContainer,
+                  borderRadius: AppRadius.cardBorder,
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.text_fields, color: cs.onPrimaryContainer),
+                    AppSpacing.hGapSm,
+                    Expanded(
+                      child: Text(
+                        'Interface visuelle active. Toutes les alertes et '
+                        'confirmations passent par du texte.',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: cs.onPrimaryContainer,
+                          height: 1.4,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ),
-          const SizedBox(height: 12),
-          _ActionCard(
-            title: 'Texte vers signes (IA2)',
-            subtitle: 'Convertir une phrase en séquence visuelle',
-            icon: Icons.sign_language_outlined,
-            onTap: () => _runSignText(),
-          ),
-          Card(
-            child: Padding(
-              padding: const EdgeInsets.all(12),
+
+            AppSpacing.gapLg,
+
+            // === Section 1 : Navigation rapide ===
+            const AccessibleSectionHeader(
+              label: 'Navigation rapide',
+              icon: Icons.explore_outlined,
+            ),
+            AppSpacing.gapXs,
+            AccessibleActionCard(
+              icon: Icons.closed_caption_outlined,
+              label: 'Sous-titres de conversation',
+              description: 'Transcription en temps réel autour de vous',
+              onTap: () =>
+                  context.push('/accessibility/conversation-captions'),
+            ),
+            AppSpacing.gapSm,
+            AccessibleActionCard(
+              icon: Icons.notifications_active_outlined,
+              label: 'Notifications',
+              description: 'Toutes les alertes en texte',
+              onTap: () => context.push('/notifications'),
+            ),
+            AppSpacing.gapSm,
+            AccessibleActionCard(
+              icon: Icons.groups_outlined,
+              label: 'Communauté',
+              description: 'Messages et entraide',
+              onTap: () => context.go('/home?tab=4'),
+            ),
+            AppSpacing.gapSm,
+            AccessibleActionCard(
+              icon: Icons.directions_car_outlined,
+              label: 'Transport',
+              description: 'Demander un trajet adapté',
+              onTap: () => context.go('/home?tab=1'),
+            ),
+            AppSpacing.gapSm,
+            AccessibleActionCard(
+              icon: Icons.emergency_outlined,
+              label: 'Contacts d\'urgence',
+              description: 'Liste des proches à prévenir',
+              iconColor: semantic.danger,
+              onTap: () => context.push('/accompagnants'),
+            ),
+
+            AppSpacing.gapLg,
+
+            // === Section 2 : Outil IA — texte vers langue des signes ===
+            const AccessibleSectionHeader(
+              label: 'Convertir du texte en signes',
+              icon: Icons.sign_language_outlined,
+            ),
+            AppSpacing.gapXs,
+            Container(
+              padding: const EdgeInsets.all(AppSpacing.md),
+              decoration: BoxDecoration(
+                color: cs.surfaceContainerHighest,
+                borderRadius: AppRadius.cardBorder,
+              ),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   TextField(
                     controller: _textController,
                     decoration: const InputDecoration(
                       labelText: 'Phrase à convertir',
-                      hintText: 'Ex: bonjour aide urgence',
+                      hintText: 'Ex : bonjour, j\'ai besoin d\'aide',
                     ),
                     minLines: 1,
                     maxLines: 3,
+                    textInputAction: TextInputAction.done,
                   ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton.icon(
-                          onPressed: signTextState.isLoading ? null : _runSignText,
-                          icon: signTextState.isLoading
-                              ? const SizedBox(
-                                  width: 14,
-                                  height: 14,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )
-                              : const Icon(Icons.play_arrow),
-                          label: const Text('Lancer IA'),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      OutlinedButton(
-                        onPressed: signTextState.isLoading ? null : _runSignText,
-                        child: const Text('Retry'),
-                      ),
-                    ],
+                  AppSpacing.gapSm,
+                  Ma3akPrimaryButton(
+                    label: 'Lancer la conversion',
+                    icon: Icons.play_arrow,
+                    loading: signTextState.isLoading,
+                    onPressed: signTextState.isLoading ? null : _runSignText,
+                    semanticHint:
+                        'Convertit la phrase saisie en séquence visuelle en langue des signes',
                   ),
-                  const SizedBox(height: 8),
-                  if (signTextState.hasError)
-                    Text(
-                      aiFriendlyError(signTextState.error!),
-                      style: const TextStyle(color: Colors.red),
+                  if (signTextState.hasError) ...[
+                    AppSpacing.gapSm,
+                    Container(
+                      padding: const EdgeInsets.all(AppSpacing.sm),
+                      decoration: BoxDecoration(
+                        color: semantic.dangerContainer,
+                        borderRadius: AppRadius.smBorder,
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.error_outline,
+                            size: 18,
+                            color: semantic.danger,
+                          ),
+                          AppSpacing.hGapSm,
+                          Expanded(
+                            child: Text(
+                              aiFriendlyError(signTextState.error!),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: semantic.danger,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                  ],
                   if (generated != null) ...[
-                    const SizedBox(height: 8),
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        generated.visualSequence.isEmpty
-                            ? 'Aucune séquence visuelle retournée.'
-                            : generated.visualSequence.join('  '),
-                        style: theme.textTheme.titleMedium,
+                    AppSpacing.gapMd,
+                    const Divider(),
+                    AppSpacing.gapSm,
+                    Text(
+                      'Séquence visuelle',
+                      style: theme.textTheme.labelLarge?.copyWith(
+                        color: cs.onSurfaceVariant,
                       ),
+                    ),
+                    AppSpacing.gapXs,
+                    Text(
+                      generated.visualSequence.isEmpty
+                          ? 'Aucune séquence visuelle retournée.'
+                          : generated.visualSequence.join('  '),
+                      style: theme.textTheme.titleMedium,
                     ),
                   ],
                 ],
               ),
             ),
-          ),
-          _ActionCard(
-            title: 'Notifications',
-            subtitle: 'Afficher toutes les alertes en texte',
-            icon: Icons.notifications_active_outlined,
-            onTap: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Notifications visuelles actives.'),
-                ),
-              );
-            },
-          ),
-          _ActionCard(
-            title: 'Confirmation',
-            subtitle: 'Confirmer les actions critiques par texte',
-            icon: Icons.rule_folder_outlined,
-            onTap: () {
-              showDialog<void>(
-                context: context,
-                builder: (_) => AlertDialog(
-                  title: const Text('Confirmation'),
-                  content: const Text(
-                    'Toutes les actions importantes sont confirmées visuellement.',
-                  ),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('OK'),
-                    ),
-                  ],
-                ),
-              );
-            },
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _runSignText() async {
-    await ref.read(signTextControllerProvider.notifier).run(_textController.text);
-  }
-}
-
-class _ActionCard extends StatelessWidget {
-  const _ActionCard({
-    required this.title,
-    required this.subtitle,
-    required this.icon,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: SizedBox(
-        height: 92,
-        child: FilledButton.tonalIcon(
-          onPressed: onTap,
-          icon: Icon(icon, size: 28),
-          label: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                ),
-              ),
-              Text(subtitle, style: const TextStyle(fontSize: 14)),
-            ],
-          ),
+          ],
         ),
       ),
     );
