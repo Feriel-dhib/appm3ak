@@ -18,7 +18,9 @@ dependencies:
   flutter_riverpod: ^2.6.1
 
   # HTTP & Storage
+  http: ^1.2.2
   dio: ^5.7.0
+  intl: ^0.20.2
   socket_io_client: ^2.0.3
   flutter_secure_storage: ^9.2.4
   shared_preferences: ^2.3.3
@@ -100,6 +102,8 @@ flutter:
     - assets/videos/
     - assets/fonts/
     - assets/places.json
+    - assets/accessibility/
+    - assets/accessibility/places.json
 
   fonts:
     - family: NotoSansSymbols2

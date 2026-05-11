@@ -41,6 +41,26 @@ String getDefaultStressApiUrl() {
   return 'http://127.0.0.1:8000';
 }
 
+/// Base FastAPI IA (port 8002 par défaut).
+String getDefaultAiBaseUrl() {
+  if (Platform.isAndroid) return 'http://10.0.2.2:8002';
+  return 'http://127.0.0.1:8002';
+}
+
+/// Service FastAPI accessibilité (port 8002 par défaut).
+String getDefaultAccessibilityAiBaseUrl() {
+  const fromEnv = String.fromEnvironment(
+    'ACCESSIBILITY_AI_BASE_URL',
+    defaultValue: '',
+  );
+  if (fromEnv.isNotEmpty) return fromEnv.replaceAll(RegExp(r'/+$'), '');
+  const host = String.fromEnvironment('ACCESSIBILITY_AI_HOST', defaultValue: '');
+  const port = String.fromEnvironment('ACCESSIBILITY_AI_PORT', defaultValue: '8002');
+  if (host.isNotEmpty) return 'http://$host:$port';
+  if (Platform.isAndroid) return 'http://10.0.2.2:$port';
+  return 'http://127.0.0.1:$port';
+}
+
 /// Backend Flask AI (Whisper/TTS/air-click/adapt), port 5001 par défaut.
 String getDefaultAiModuleBaseUrl() {
   const deployed = 'https://ai-module-navigation.onrender.com';

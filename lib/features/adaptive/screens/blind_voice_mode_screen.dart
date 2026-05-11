@@ -732,8 +732,13 @@ class _BlindVoiceModeScreenState extends ConsumerState<BlindVoiceModeScreen> {
     _autoListenTimer?.cancel();
     _recorder.dispose();
     _tts.stop();
-    // Désactiver le mode vocal persistant (pas de ref ici — Consumer dispose trop tard).
-    _voiceModeNotifier?.deactivateVoiceMode();
+    // Différé via Future(...) : Riverpod interdit la mutation d'un provider
+    // pendant la finalisation du widget tree (sinon "Tried to modify a provider
+    // while the widget tree was building").
+    final notifier = _voiceModeNotifier;
+    if (notifier != null) {
+      Future<void>(() => notifier.deactivateVoiceMode());
+    }
     super.dispose();
   }
 

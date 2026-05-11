@@ -38,6 +38,8 @@ import '../features/sos/screens/sos_for_accompagnant_screen.dart';
 import '../features/sos/screens/sos_medical_screen.dart';
 import '../features/auth/screens/register_screen.dart';
 import '../features/accessibility/screens/conversation_captions_screen.dart';
+import '../features/accessibility/screens/reservation_screen.dart';
+import '../features/accessibility/screens/reservations_history_screen.dart';
 import '../features/accessible_places/screens/accessible_places_screen.dart';
 import '../air_writing/air_writing_page.dart';
 import '../features/auth/screens/splash_screen.dart';
@@ -670,6 +672,17 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/accessible-places',
         builder: (_, __) => const AccessiblePlacesScreen(),
+      ),
+      GoRoute(
+        path: '/reservations-history',
+        builder: (_, __) => const ReservationsHistoryScreen(embedded: false),
+      ),
+      GoRoute(
+        path: '/reserve-access',
+        builder: (_, state) {
+          final placeName = state.extra as String? ?? '';
+          return ReservationScreen(placeName: placeName);
+        },
       ),
     ],
     errorBuilder: (context, state) =>

@@ -9,7 +9,7 @@ import '../../../providers/auth_providers.dart';
 import '../../../providers/vehicle_providers.dart';
 import '../../../core/widgets/ma3ak_bottom_nav_item.dart';
 import '../../accessibility/auto_voice_navigation_listener.dart';
-import '../../community/screens/community_locations_screen.dart';
+import '../../accessibility/screens/accessibility_lieux_hub_screen.dart';
 import '../../community/screens/community_main_screen.dart';
 import '../../health/screens/health_tab.dart';
 import '../../transport/screens/transport_hub_screen.dart';
@@ -215,9 +215,7 @@ class _MainShellState extends ConsumerState<MainShell> {
               }
               break;
             case 3:
-              body = const Scaffold(
-                body: CommunityLocationsScreen(),
-              );
+              body = const AccessibilityLieuxHubScreen();
               break;
             case 4:
               body = CommunityMainScreen(

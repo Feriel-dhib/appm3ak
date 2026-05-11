@@ -8,6 +8,10 @@ String getDefaultApiBaseUrl() {
 
 String getDefaultStressApiUrl() => 'http://localhost:8000';
 
+String getDefaultAiBaseUrl() => 'http://localhost:8002';
+
+String getDefaultAccessibilityAiBaseUrl() => 'http://localhost:8002';
+
 String getDefaultAiModuleBaseUrl() => 'https://ai-module-navigation.onrender.com';
 
 String? getDefaultAiModuleSecondaryBaseUrl() => null;

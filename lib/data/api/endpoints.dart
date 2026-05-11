@@ -10,9 +10,11 @@ class Endpoints {
   // ——— User ———
   /// Inscription : `POST /users/register` (le backend ne monte pas `/user/register` ni `/auth/register`).
   static const String userRegister = '/users/register';
-  static const String userMe = '/user/me';
-  static const String userMeLocation = '/user/me/location';
-  static const String userMePhoto = '/user/me/photo';
+  // Le backend NestJS expose les routes au **pluriel** (`/users/...`). Une
+  // version antérieure utilisait `/user/me` qui renvoyait 404 (`Cannot GET /user/me`).
+  static const String userMe = '/users/me';
+  static const String userMeLocation = '/users/me/location';
+  static const String userMePhoto = '/users/me/photo';
 
   /// Animal d’assistance (NestJS : `PUT /users/animal`).
   static const String usersAnimal = '/users/animal';

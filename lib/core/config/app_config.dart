@@ -18,6 +18,16 @@ class AppConfig {
     defaultValue: '',
   );
 
+  static const String _envAiBaseUrl = String.fromEnvironment(
+    'AI_BASE_URL',
+    defaultValue: '',
+  );
+
+  static const String _envAccessibilityAiBaseUrl = String.fromEnvironment(
+    'ACCESSIBILITY_AI_BASE_URL',
+    defaultValue: '',
+  );
+
   static const String _envAiModuleBaseUrl = String.fromEnvironment(
     'AI_MODULE_BASE_URL',
     defaultValue: '',
@@ -49,6 +59,22 @@ class AppConfig {
   static String get apiBaseUrl {
     if (_envApiBaseUrl.isNotEmpty) return _envApiBaseUrl;
     return impl.getDefaultApiBaseUrl();
+  }
+
+  /// Base FastAPI / IA (port 8002 par défaut). Surcharge : `--dart-define=AI_BASE_URL=...`.
+  static String get aiBaseUrl {
+    if (_envAiBaseUrl.isNotEmpty) {
+      return _envAiBaseUrl.replaceAll(RegExp(r'/+$'), '');
+    }
+    return impl.getDefaultAiBaseUrl().replaceAll(RegExp(r'/+$'), '');
+  }
+
+  /// Backend FastAPI analyse d'accessibilité (Groq + OSM).
+  static String get accessibilityAiBaseUrl {
+    if (_envAccessibilityAiBaseUrl.isNotEmpty) {
+      return _envAccessibilityAiBaseUrl.replaceAll(RegExp(r'/+$'), '');
+    }
+    return impl.getDefaultAccessibilityAiBaseUrl();
   }
 
   /// Alias sémantique (Socket.IO, URLs publiques).

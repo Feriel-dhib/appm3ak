@@ -8,8 +8,11 @@ import '../hand_tracker.dart';
 import '../models/prediction_result.dart';
 import '../renderer.dart';
 import '../trajectory_buffer.dart';
+import 'air_writing_remote_service.dart';
 import 'gesture_service.dart';
 import 'tflite_service.dart';
+
+enum AirWritingPredictionMode { local, remote }
 
 class AirWritingConfig {
   const AirWritingConfig({
@@ -18,6 +21,7 @@ class AirWritingConfig {
     this.minPoints = 25,
     this.smoothingWindow = 7,
     this.debugLogs = false,
+    this.predictionMode = AirWritingPredictionMode.local,
   });
 
   final double minConfidence;
@@ -25,6 +29,7 @@ class AirWritingConfig {
   final int minPoints;
   final int smoothingWindow;
   final bool debugLogs;
+  final AirWritingPredictionMode predictionMode;
 
   AirWritingConfig copyWith({
     double? minConfidence,
@@ -32,6 +37,7 @@ class AirWritingConfig {
     int? minPoints,
     int? smoothingWindow,
     bool? debugLogs,
+    AirWritingPredictionMode? predictionMode,
   }) {
     return AirWritingConfig(
       minConfidence: minConfidence ?? this.minConfidence,
@@ -39,6 +45,7 @@ class AirWritingConfig {
       minPoints: minPoints ?? this.minPoints,
       smoothingWindow: smoothingWindow ?? this.smoothingWindow,
       debugLogs: debugLogs ?? this.debugLogs,
+      predictionMode: predictionMode ?? this.predictionMode,
     );
   }
 }
@@ -110,10 +117,12 @@ class AirWritingService {
     required GestureService gestureService,
     required TfliteService tfliteService,
     required AirWritingRenderer renderer,
+    AirWritingRemoteService? remoteService,
   }) : _handTracker = handTracker,
        _gestureService = gestureService,
        _tfliteService = tfliteService,
-       _renderer = renderer {
+       _renderer = renderer,
+       _remoteService = remoteService {
     _trajectoryBuffer = _makeBuffer();
   }
 
@@ -129,6 +138,9 @@ class AirWritingService {
   final GestureService _gestureService;
   final TfliteService _tfliteService;
   final AirWritingRenderer _renderer;
+  final AirWritingRemoteService? _remoteService;
+
+  AirWritingRemoteService? get remoteService => _remoteService;
 
   final ValueNotifier<AirWritingUiState> state = ValueNotifier<AirWritingUiState>(
     AirWritingUiState.initial(),
@@ -294,15 +306,26 @@ class AirWritingService {
       );
       return;
     }
-    final prediction = _tfliteService.predict(
-      input,
-      minConfidence: _config.minConfidence,
-      topK: 3,
-    );
+
+    final useRemote = _config.predictionMode == AirWritingPredictionMode.remote
+        && _remoteService != null;
+
+    PredictionResult? prediction;
+    if (useRemote) {
+      prediction = await _predictRemote(input);
+    } else {
+      prediction = _tfliteService.predict(
+        input,
+        minConfidence: _config.minConfidence,
+        topK: 3,
+      );
+    }
+
     if (prediction != null) {
       if (_config.debugLogs) {
+        final mode = useRemote ? 'Remote' : 'Local';
         debugPrint(
-          '[AirWriting] Prédit=${prediction.top1.label} '
+          '[AirWriting][$mode] Prédit=${prediction.top1.label} '
           'conf=${prediction.top1.confidence.toStringAsFixed(3)} '
           'accepted=${prediction.accepted}',
         );
@@ -321,6 +344,24 @@ class AirWritingService {
       writingActive: false,
       fps: _currentFps(),
     );
+  }
+
+  Future<PredictionResult?> _predictRemote(Float32List input) async {
+    state.value = state.value.copyWith(status: 'Envoi au serveur…');
+    try {
+      final jpeg = AirWritingRemoteService.float32ToJpeg(input);
+      return await _remoteService!.predict(
+        jpeg,
+        alreadyRendered: true,
+        minConfidence: _config.minConfidence,
+      );
+    } catch (e) {
+      if (_config.debugLogs) {
+        debugPrint('[AirWriting][Remote] Erreur : $e');
+      }
+      state.value = state.value.copyWith(status: 'Erreur serveur');
+      return null;
+    }
   }
 
   void _updateFps() {

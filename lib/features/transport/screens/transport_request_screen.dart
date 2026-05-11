@@ -146,7 +146,7 @@ class _TransportRequestScreenState extends ConsumerState<TransportRequestScreen>
     setState(() => _isLoading = true);
     try {
       final repo = ref.read(transportRepositoryProvider);
-      await repo.create(
+      final transport = await repo.create(
         typeTransport: _type.toApiString(),
         depart: departName,
         destination: destName,
@@ -166,7 +166,7 @@ class _TransportRequestScreenState extends ConsumerState<TransportRequestScreen>
             backgroundColor: Colors.green,
           ),
         );
-        context.pop();
+        context.go('/transport/chauffeur/${transport.id}');
       }
     } catch (e) {
       if (mounted) {
